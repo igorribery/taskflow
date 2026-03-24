@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/principal.js",
-    "start:dev": "tsx watch src/principal.ts",
+    "start:dev": "node --watch -r ts-node/register -r tsconfig-paths/register src/principal.ts",
     "lint": "eslint \"{src,test}/**/*.ts\" --fix",
     "prisma": "prisma",
     "prebuild": "npm run prisma -- generate"

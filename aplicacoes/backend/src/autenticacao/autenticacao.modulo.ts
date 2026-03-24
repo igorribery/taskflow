@@ -11,9 +11,11 @@ import { GuardaJwt } from './guarda-jwt';
   imports: [
     BancoModulo,
     PassportModule,
-    JwtModule.register({
-      secret: process.env.JWT_SEGREDO as string,
-      signOptions: { expiresIn: '7d' },
+    JwtModule.registerAsync({
+      useFactory: () => ({
+        secret: process.env.JWT_SEGREDO ?? 'segredo-taskflow',
+        signOptions: { expiresIn: '7d' },
+      }),
     }),
   ],
   controllers: [AutenticacaoControlador],
