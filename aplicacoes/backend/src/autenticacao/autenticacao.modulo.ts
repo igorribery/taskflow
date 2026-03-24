@@ -12,7 +12,7 @@ import { GuardaJwt } from './guarda-jwt';
     BancoModulo,
     PassportModule,
     JwtModule.register({
-      secret: process.env.JWT_SEGREDO ?? 'segredo-taskflow',
+      secret: process.env.JWT_SEGREDO as string,
       signOptions: { expiresIn: '7d' },
     }),
   ],

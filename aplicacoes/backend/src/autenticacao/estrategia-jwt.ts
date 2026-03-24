@@ -13,7 +13,7 @@ export class EstrategiaJwt extends PassportStrategy(Strategy) {
   constructor(private readonly prisma: ClientePrisma) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: process.env.JWT_SEGREDO ?? 'segredo-taskflow',
+      secretOrKey: process.env.JWT_SEGREDO as string,
       ignoreExpiration: false,
     });
   }
