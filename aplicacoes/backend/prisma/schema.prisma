@@ -5,3 +5,89 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum Papel {
+  DONO
+  MEMBRO
+}
+
+enum StatusTarefa {
+  TODO
+  DOING
+  DONE
+}
+
+enum AcaoHistorico {
+  CRIADA
+  STATUS_ALTERADO
+  TITULO_ALTERADO
+  DESCRICAO_ALTERADA
+  DELETADA
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+model Usuario {
+  id        String   @id @default(uuid())
+  nome      String
+  email     String   @unique
+  senha     String
+  criadoEm DateTime @default(now())
+
+  workspaces     WorkspaceMembro[]
+  tarefasCriadas Tarefa[]
+  historicos     HistoricoTarefa[]
+}
+
+model Workspace {
+  id        String   @id @default(uuid())
+  nome      String
+  criadoEm DateTime @default(now())
+
+  membros WorkspaceMembro[]
+  tarefas Tarefa[]
+}
+
+model WorkspaceMembro {
+  id          String   @id @default(uuid())
+  workspaceId String
+  usuarioId   String
+  papel       Papel    @default(MEMBRO)
+  entradoEm   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  usuario   Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, usuarioId])
+}
+
+model Tarefa {
+  id           String       @id @default(uuid())
+  titulo       String
+  descricao    String?
+  status       StatusTarefa @default(TODO)
+  ordem        Int          @default(0)
+  workspaceId  String
+  criadorId    String
+  criadoEm     DateTime     @default(now())
+  atualizadoEm DateTime     @updatedAt
+
+  workspace  Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  criador    Usuario         @relation(fields: [criadorId], references: [id])
+  historicos HistoricoTarefa[]
+}
+
+model HistoricoTarefa {
+  id            String        @id @default(uuid())
+  tarefaId      String
+  usuarioId     String
+  acao          AcaoHistorico
+  valorAnterior String?
+  valorNovo     String?
+  criadoEm      DateTime      @default(now())
+
+  tarefa  Tarefa  @relation(fields: [tarefaId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+}
