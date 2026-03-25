@@ -3,9 +3,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { StatusTarefa } from '@prisma/client';
 import { HistoricoServico } from '../historico/historico.servico';
 import { ClientePrisma } from '../infraestrutura/banco/cliente-prisma';
+import { ListaServico } from '../lista/lista.servico';
 import { WorkspaceServico } from '../workspace/workspace.servico';
 import { AtualizarTarefaDto } from './dto/atualizar-tarefa.dto';
 import { CriarTarefaDto } from './dto/criar-tarefa.dto';
@@ -15,21 +15,32 @@ export class TarefaServico {
   constructor(
     private readonly prisma: ClientePrisma,
     private readonly workspaceServico: WorkspaceServico,
+    private readonly listaServico: ListaServico,
     private readonly historicoServico: HistoricoServico,
   ) {}
 
   async criar(workspaceId: string, usuarioId: string, dto: CriarTarefaDto) {
     await this.workspaceServico.verificarAcesso(workspaceId, usuarioId);
 
+    let listaId = dto.listaId;
+    if (!listaId) {
+      listaId = await this.listaServico.buscarIdListaPorSlug(workspaceId, 'todo');
+    } else {
+      await this.listaServico.garantirListaNoWorkspace(listaId, workspaceId);
+    }
+
     const tarefa = await this.prisma.tarefa.create({
       data: {
         titulo: dto.titulo,
         descricao: dto.descricao,
-        status: dto.status ?? StatusTarefa.TODO,
+        listaId,
         workspaceId,
         criadorId: usuarioId,
       },
-      include: { criador: { select: { id: true, nome: true, email: true } } },
+      include: {
+        criador: { select: { id: true, nome: true, email: true } },
+        lista: { select: { id: true, titulo: true, slug: true, ordem: true } },
+      },
     });
 
     await this.historicoServico.registrar({
@@ -42,29 +53,6 @@ export class TarefaServico {
     return tarefa;
   }
 
-  async listarPorWorkspace(workspaceId: string, usuarioId: string) {
-    await this.workspaceServico.verificarAcesso(workspaceId, usuarioId);
-
-    const tarefas = await this.prisma.tarefa.findMany({
-      where: { workspaceId },
-      include: { criador: { select: { id: true, nome: true, email: true } } },
-      orderBy: [{ status: 'asc' }, { ordem: 'asc' }, { criadoEm: 'asc' }],
-    });
-
-    // Agrupa por status para retorno estilo kanban
-    const kanban: Record<StatusTarefa, typeof tarefas> = {
-      TODO: [],
-      DOING: [],
-      DONE: [],
-    };
-
-    for (const tarefa of tarefas) {
-      kanban[tarefa.status].push(tarefa);
-    }
-
-    return kanban;
-  }
-
   async atualizar(
     tarefaId: string,
     usuarioId: string,
@@ -74,14 +62,22 @@ export class TarefaServico {
 
     const registros: Promise<unknown>[] = [];
 
-    if (dto.status && dto.status !== tarefa.status) {
+    if (dto.listaId && dto.listaId !== tarefa.listaId) {
+      await this.listaServico.garantirListaNoWorkspace(
+        dto.listaId,
+        tarefa.workspaceId,
+      );
+      const [antiga, nova] = await Promise.all([
+        this.prisma.listaKanban.findUnique({ where: { id: tarefa.listaId } }),
+        this.prisma.listaKanban.findUnique({ where: { id: dto.listaId } }),
+      ]);
       registros.push(
         this.historicoServico.registrar({
           tarefaId,
           usuarioId,
-          acao: 'STATUS_ALTERADO',
-          valorAnterior: tarefa.status,
-          valorNovo: dto.status,
+          acao: 'LISTA_ALTERADA',
+          valorAnterior: antiga?.titulo ?? tarefa.listaId,
+          valorNovo: nova?.titulo ?? dto.listaId,
         }),
       );
     }
@@ -116,10 +112,13 @@ export class TarefaServico {
         data: {
           titulo: dto.titulo,
           descricao: dto.descricao,
-          status: dto.status,
+          listaId: dto.listaId,
           ordem: dto.ordem,
         },
-        include: { criador: { select: { id: true, nome: true, email: true } } },
+        include: {
+          criador: { select: { id: true, nome: true, email: true } },
+          lista: { select: { id: true, titulo: true, slug: true, ordem: true } },
+        },
       }),
       ...registros,
     ]);

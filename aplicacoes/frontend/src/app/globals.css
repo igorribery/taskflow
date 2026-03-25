@@ -1,3 +1,13 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+:root {
+  --tf-bg: #0a0a0a;
+  --tf-accent: #450a0a;
+  --tf-accent-bright: #7f1d1d;
+}
+
+html,
+body {
+  background-color: var(--tf-bg);
+  color: #fafafa;
+}

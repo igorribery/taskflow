@@ -1,5 +1,4 @@
-import { StatusTarefa } from '@prisma/client';
-import { IsEnum, IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import { IsInt, IsOptional, IsString, IsUUID, MaxLength, Min } from 'class-validator';
 
 export class AtualizarTarefaDto {
   @IsString()
@@ -11,9 +10,9 @@ export class AtualizarTarefaDto {
   @IsOptional()
   descricao?: string;
 
-  @IsEnum(StatusTarefa, { message: 'Status inválido. Use TODO, DOING ou DONE.' })
+  @IsUUID('4', { message: 'listaId inválido.' })
   @IsOptional()
-  status?: StatusTarefa;
+  listaId?: string;
 
   @IsInt()
   @Min(0)

@@ -13,18 +13,14 @@ enum Papel {
   MEMBRO
 }
 
-enum StatusTarefa {
-  TODO
-  DOING
-  DONE
-}
-
 enum AcaoHistorico {
   CRIADA
   STATUS_ALTERADO
+  LISTA_ALTERADA
   TITULO_ALTERADO
   DESCRICAO_ALTERADA
   DELETADA
+  COMENTARIO_ADICIONADO
 }
 
 // ─── Models ──────────────────────────────────────────────────────────────────
@@ -39,6 +35,7 @@ model Usuario {
   workspaces     WorkspaceMembro[]
   tarefasCriadas Tarefa[]
   historicos     HistoricoTarefa[]
+  comentarios    ComentarioTarefa[]
 }
 
 model Workspace {
@@ -48,6 +45,21 @@ model Workspace {
 
   membros WorkspaceMembro[]
   tarefas Tarefa[]
+  listas  ListaKanban[]
+}
+
+model ListaKanban {
+  id          String   @id @default(uuid())
+  workspaceId String
+  titulo      String
+  ordem       Int      @default(0)
+  /// Identificadores fixos das 3 colunas iniciais: todo | doing | done — listas novas ficam null
+  slug        String?
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tarefas   Tarefa[]
+
+  @@index([workspaceId, ordem])
 }
 
 model WorkspaceMembro {
@@ -64,19 +76,34 @@ model WorkspaceMembro {
 }
 
 model Tarefa {
-  id           String       @id @default(uuid())
+  id           String   @id @default(uuid())
   titulo       String
   descricao    String?
-  status       StatusTarefa @default(TODO)
-  ordem        Int          @default(0)
+  ordem        Int      @default(0)
   workspaceId  String
+  listaId      String
   criadorId    String
-  criadoEm     DateTime     @default(now())
-  atualizadoEm DateTime     @updatedAt
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
 
   workspace  Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  lista      ListaKanban     @relation(fields: [listaId], references: [id], onDelete: Restrict)
   criador    Usuario         @relation(fields: [criadorId], references: [id])
   historicos HistoricoTarefa[]
+  comentarios ComentarioTarefa[]
+}
+
+model ComentarioTarefa {
+  id        String   @id @default(uuid())
+  tarefaId  String
+  usuarioId String
+  texto     String
+  criadoEm  DateTime @default(now())
+
+  tarefa  Tarefa  @relation(fields: [tarefaId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@index([tarefaId, criadoEm])
 }
 
 model HistoricoTarefa {

@@ -18,6 +18,13 @@ export class WorkspaceServico {
         membros: {
           create: { usuarioId, papel: 'DONO' },
         },
+        listas: {
+          create: [
+            { titulo: 'A fazer', ordem: 0, slug: 'todo' },
+            { titulo: 'Em andamento', ordem: 1, slug: 'doing' },
+            { titulo: 'Concluído', ordem: 2, slug: 'done' },
+          ],
+        },
       },
       include: { membros: { include: { usuario: { select: { id: true, nome: true, email: true } } } } },
     });
