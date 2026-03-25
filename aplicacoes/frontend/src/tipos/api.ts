@@ -36,6 +36,7 @@ export interface Tarefa {
   atualizadoEm: string;
   criador: CriadorResumo;
   lista?: { id: string; titulo: string; slug: string | null; ordem: number };
+  _count?: { comentarios: number };
 }
 
 /** Listas do quadro com tarefas aninhadas (GET /workspaces/:id/quadro) */

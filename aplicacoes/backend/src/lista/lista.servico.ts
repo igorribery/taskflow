@@ -20,6 +20,7 @@ export class ListaServico {
           orderBy: [{ ordem: 'asc' }, { criadoEm: 'asc' }],
           include: {
             criador: { select: { id: true, nome: true, email: true } },
+            _count: { select: { comentarios: true } },
           },
         },
       },

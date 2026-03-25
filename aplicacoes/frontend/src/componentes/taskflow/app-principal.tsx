@@ -23,6 +23,7 @@ import {
   LayoutGrid,
   LogOut,
   MessageSquare,
+  MessageSquareText,
   Pencil,
   Plus,
   Trash2,
@@ -150,6 +151,10 @@ function CartaoPreviewArraste({ tarefa }: { tarefa: Tarefa }) {
       </div>
       <div className="min-w-0 flex-1 text-left">
         <p className="font-medium text-zinc-100">{tarefa.titulo}</p>
+        <div className="mt-1 flex items-center gap-1 text-xs text-zinc-500">
+          <MessageSquareText className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          <span>{tarefa._count?.comentarios ?? 0}</span>
+        </div>
         {tarefa.descricao ? (
           <p className="mt-1 line-clamp-2 text-xs text-zinc-500">{tarefa.descricao}</p>
         ) : null}
@@ -183,6 +188,7 @@ function CartaoTarefa({
   };
 
   const estaConcluida = slugLista === 'done';
+  const qtdComentarios = tarefa._count?.comentarios ?? 0;
 
   return (
     <div
@@ -225,9 +231,17 @@ function CartaoTarefa({
           <Circle className="h-5 w-5" />
         )}
       </Button>
-      <p className="min-w-0 flex-1 py-0.5 text-sm font-medium leading-snug text-zinc-100">
-        {tarefa.titulo}
-      </p>
+      <div className="min-w-0 flex-1 py-0.5">
+        <p className="text-sm font-medium leading-snug text-zinc-100">{tarefa.titulo}</p>
+        <div
+          className="mt-1 flex items-center gap-1 text-[10px] leading-none text-zinc-500"
+          title={`${qtdComentarios} comentário${qtdComentarios === 1 ? '' : 's'}`}
+          aria-label={`${qtdComentarios} comentário${qtdComentarios === 1 ? '' : 's'}`}
+        >
+          <MessageSquareText className="h-3 w-3 shrink-0" aria-hidden />
+          <span aria-hidden>{qtdComentarios}</span>
+        </div>
+      </div>
       {tarefa.descricao ? (
         <span className="sr-only">{tarefa.descricao}</span>
       ) : null}
@@ -243,7 +257,7 @@ function CartaoTarefa({
             onEditar();
           }}
         >
-          <Pencil className="h-4 w-4" />
+          <Pencil className="h-2 w-2" />
         </Button>
         <Button
           type="button"
@@ -256,7 +270,7 @@ function CartaoTarefa({
             onExcluir();
           }}
         >
-          <Trash2 className="h-4 w-4" />
+          <Trash2 className="h-2 w-2" />
         </Button>
       </div>
     </div>
@@ -470,6 +484,7 @@ export default function AppPrincipal() {
         await carregarComentarios(tarefaPainel.id);
         await carregarHistorico(tarefaPainel.id);
       }
+      void queryClient.invalidateQueries({ queryKey: ['quadro', token, workspaceAtivo] });
     },
   });
 
@@ -482,6 +497,7 @@ export default function AppPrincipal() {
         setTextoComentarioEditando('');
         await carregarComentarios(tarefaPainel.id);
       }
+      void queryClient.invalidateQueries({ queryKey: ['quadro', token, workspaceAtivo] });
     },
   });
 
@@ -492,6 +508,7 @@ export default function AppPrincipal() {
       if (tarefaPainel) {
         await carregarComentarios(tarefaPainel.id);
       }
+      void queryClient.invalidateQueries({ queryKey: ['quadro', token, workspaceAtivo] });
     },
   });
 
@@ -770,8 +787,7 @@ export default function AppPrincipal() {
               {workspaces.find((w) => w.id === workspaceAtivo)?.nome ?? 'Selecione um workspace'}
             </h2>
             <p className="text-xs text-zinc-500">
-              Listas dinâmicas · arraste pelo ícone ⋮ · clique no cartão ou no lápis para editar · lixeira
-              exclui (com confirmação)
+              Listas dinâmicas
             </p>
           </div>
           {workspaceAtivo && idTodo ? (
