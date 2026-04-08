@@ -28,12 +28,13 @@ export class ListaServico {
   }
 
   async criar(workspaceId: string, usuarioId: string, titulo: string) {
-    await this.verificarMembroWorkspace(workspaceId, usuarioId);
-
-    const agg = await this.prisma.listaKanban.aggregate({
-      where: { workspaceId },
-      _max: { ordem: true },
-    });
+    const [, agg] = await Promise.all([
+      this.verificarMembroWorkspace(workspaceId, usuarioId),
+      this.prisma.listaKanban.aggregate({
+        where: { workspaceId },
+        _max: { ordem: true },
+      }),
+    ]);
     const ordem = (agg._max.ordem ?? -1) + 1;
 
     return this.prisma.listaKanban.create({

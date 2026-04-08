@@ -4,6 +4,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { Prisma } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { ClientePrisma } from '../infraestrutura/banco/cliente-prisma';
 import { CadastroDto } from './dto/cadastro.dto';
@@ -17,20 +18,28 @@ export class AutenticacaoServico {
   ) {}
 
   async cadastrar(dto: CadastroDto) {
-    const existe = await this.prisma.usuario.findUnique({
-      where: { email: dto.email },
-    });
-
-    if (existe) {
-      throw new ConflictException('E-mail já cadastrado.');
-    }
-
     const senhaHash = await bcrypt.hash(dto.senha, 10);
 
-    const usuario = await this.prisma.usuario.create({
-      data: { nome: dto.nome, email: dto.email, senha: senhaHash },
-      select: { id: true, nome: true, email: true, criadoEm: true },
-    });
+    let usuario: {
+      id: string;
+      nome: string;
+      email: string;
+      criadoEm: Date;
+    };
+    try {
+      usuario = await this.prisma.usuario.create({
+        data: { nome: dto.nome, email: dto.email, senha: senhaHash },
+        select: { id: true, nome: true, email: true, criadoEm: true },
+      });
+    } catch (erro) {
+      if (
+        erro instanceof Prisma.PrismaClientKnownRequestError &&
+        erro.code === 'P2002'
+      ) {
+        throw new ConflictException('E-mail já cadastrado.');
+      }
+      throw erro;
+    }
 
     return { usuario, token: this.assinarToken(usuario.id, usuario.email) };
   }

@@ -20,13 +20,18 @@ export class TarefaServico {
   ) {}
 
   async criar(workspaceId: string, usuarioId: string, dto: CriarTarefaDto) {
-    await this.workspaceServico.verificarAcesso(workspaceId, usuarioId);
-
     let listaId = dto.listaId;
     if (!listaId) {
-      listaId = await this.listaServico.buscarIdListaPorSlug(workspaceId, 'todo');
+      const [, listaPadraoId] = await Promise.all([
+        this.workspaceServico.verificarAcesso(workspaceId, usuarioId),
+        this.listaServico.buscarIdListaPorSlug(workspaceId, 'todo'),
+      ]);
+      listaId = listaPadraoId;
     } else {
-      await this.listaServico.garantirListaNoWorkspace(listaId, workspaceId);
+      await Promise.all([
+        this.workspaceServico.verificarAcesso(workspaceId, usuarioId),
+        this.listaServico.garantirListaNoWorkspace(listaId, workspaceId),
+      ]);
     }
 
     const tarefa = await this.prisma.tarefa.create({
@@ -147,24 +152,25 @@ export class TarefaServico {
   }
 
   private async buscarTarefaComAcesso(tarefaId: string, usuarioId: string) {
-    const tarefa = await this.prisma.tarefa.findUnique({
-      where: { id: tarefaId },
-    });
-
-    if (!tarefa) {
-      throw new NotFoundException('Tarefa não encontrada.');
-    }
-
-    const temAcesso = await this.prisma.workspaceMembro.findUnique({
+    const tarefa = await this.prisma.tarefa.findFirst({
       where: {
-        workspaceId_usuarioId: {
-          workspaceId: tarefa.workspaceId,
-          usuarioId,
+        id: tarefaId,
+        workspace: {
+          membros: {
+            some: { usuarioId },
+          },
         },
       },
     });
 
-    if (!temAcesso) {
+    if (!tarefa) {
+      const tarefaExiste = await this.prisma.tarefa.findUnique({
+        where: { id: tarefaId },
+        select: { id: true },
+      });
+      if (!tarefaExiste) {
+        throw new NotFoundException('Tarefa não encontrada.');
+      }
       throw new ForbiddenException('Acesso negado a esta tarefa.');
     }
 

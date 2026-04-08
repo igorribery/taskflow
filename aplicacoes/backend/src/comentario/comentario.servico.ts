@@ -98,24 +98,29 @@ export class ComentarioServico {
   }
 
   private async verificarAcessoTarefa(tarefaId: string, usuarioId: string) {
-    const tarefa = await this.prisma.tarefa.findUnique({
-      where: { id: tarefaId },
-    });
+    const [tarefaExiste, tarefaComAcesso] = await Promise.all([
+      this.prisma.tarefa.findUnique({
+        where: { id: tarefaId },
+        select: { id: true },
+      }),
+      this.prisma.tarefa.findFirst({
+        where: {
+          id: tarefaId,
+          workspace: {
+            membros: {
+              some: { usuarioId },
+            },
+          },
+        },
+        select: { id: true },
+      }),
+    ]);
 
-    if (!tarefa) {
+    if (!tarefaExiste) {
       throw new NotFoundException('Tarefa não encontrada.');
     }
 
-    const membro = await this.prisma.workspaceMembro.findUnique({
-      where: {
-        workspaceId_usuarioId: {
-          workspaceId: tarefa.workspaceId,
-          usuarioId,
-        },
-      },
-    });
-
-    if (!membro) {
+    if (!tarefaComAcesso) {
       throw new ForbiddenException('Acesso negado a esta tarefa.');
     }
   }

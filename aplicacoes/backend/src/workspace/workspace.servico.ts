@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { ClientePrisma } from '../infraestrutura/banco/cliente-prisma';
 import { CriarWorkspaceDto } from './dto/criar-workspace.dto';
 
@@ -52,10 +53,13 @@ export class WorkspaceServico {
   }
 
   async buscarPorId(workspaceId: string, usuarioId: string) {
-    await this.verificarAcesso(workspaceId, usuarioId);
-
-    return this.prisma.workspace.findUnique({
-      where: { id: workspaceId },
+    const workspace = await this.prisma.workspace.findFirst({
+      where: {
+        id: workspaceId,
+        membros: {
+          some: { usuarioId },
+        },
+      },
       include: {
         membros: {
           include: {
@@ -65,28 +69,43 @@ export class WorkspaceServico {
         _count: { select: { tarefas: true } },
       },
     });
+    if (!workspace) {
+      throw new NotFoundException('Workspace não encontrado.');
+    }
+    return workspace;
   }
 
   async entrar(workspaceId: string, usuarioId: string) {
-    const workspace = await this.prisma.workspace.findUnique({
-      where: { id: workspaceId },
-    });
+    const [workspace, jaEMembro] = await Promise.all([
+      this.prisma.workspace.findUnique({
+        where: { id: workspaceId },
+      }),
+      this.prisma.workspaceMembro.findUnique({
+        where: { workspaceId_usuarioId: { workspaceId, usuarioId } },
+      }),
+    ]);
 
     if (!workspace) {
       throw new NotFoundException('Workspace não encontrado.');
     }
 
-    const jaEMembro = await this.prisma.workspaceMembro.findUnique({
-      where: { workspaceId_usuarioId: { workspaceId, usuarioId } },
-    });
-
     if (jaEMembro) {
       throw new ConflictException('Você já é membro deste workspace.');
     }
 
-    await this.prisma.workspaceMembro.create({
-      data: { workspaceId, usuarioId, papel: 'MEMBRO' },
-    });
+    try {
+      await this.prisma.workspaceMembro.create({
+        data: { workspaceId, usuarioId, papel: 'MEMBRO' },
+      });
+    } catch (erro) {
+      if (
+        erro instanceof Prisma.PrismaClientKnownRequestError &&
+        erro.code === 'P2002'
+      ) {
+        throw new ConflictException('Você já é membro deste workspace.');
+      }
+      throw erro;
+    }
 
     return { mensagem: 'Você entrou no workspace com sucesso.', workspace };
   }
