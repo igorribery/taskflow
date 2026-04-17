@@ -162,6 +162,9 @@ URLs padrão:
 - `npm run build`: compila TypeScript para `dist`
 - `npm run start`: executa build compilado
 - `npm run lint`: lint do backend
+- `npm run test`: executa a suíte de testes Jest
+- `npm run test:watch`: Jest em watch mode
+- `npm run test:cov`: Jest com coverage
 - `npm run prisma -- <comando>`: comandos Prisma
 
 ### Frontend (`aplicacoes/frontend`)
@@ -170,6 +173,9 @@ URLs padrão:
 - `npm run build`: build de produção
 - `npm run start`: sobe app em produção
 - `npm run lint`: lint do frontend
+- `npm run test`: executa a suíte de testes Jest
+- `npm run test:watch`: Jest em watch mode
+- `npm run test:cov`: Jest com coverage
 
 ## Principais rotas da API
 
@@ -215,6 +221,64 @@ Além dos enums:
 
 - `Papel` (`DONO`, `MEMBRO`)
 - `AcaoHistorico` (ações de auditoria de tarefas)
+
+## Testes automatizados
+
+Backend e frontend têm suíte Jest independente.
+
+Rodando tudo a partir da raiz:
+
+```bash
+npm test
+```
+
+Rodando por área:
+
+```bash
+npm run test:backend
+npm run test:frontend
+```
+
+### Backend
+
+Stack: **Jest + ts-jest** com mocks do Prisma (sem PostgreSQL/Redis reais).
+
+```bash
+cd aplicacoes/backend
+npm test
+npm run test:watch
+npm run test:cov
+```
+
+Testes em `*.spec.ts` ao lado de cada serviço:
+
+- `src/autenticacao/autenticacao.servico.spec.ts`
+- `src/workspace/workspace.servico.spec.ts`
+- `src/lista/lista.servico.spec.ts`
+- `src/historico/historico.servico.spec.ts`
+- `src/comentario/comentario.servico.spec.ts`
+- `src/tarefa/tarefa.servico.spec.ts`
+
+Helper de mock do Prisma: `test/utilitarios/mock-prisma.ts`.
+
+### Frontend
+
+Stack: **Jest + ts-jest + jest-environment-jsdom** (com `@testing-library/react` disponível para futuros testes de componente).
+
+```bash
+cd aplicacoes/frontend
+npm test
+npm run test:watch
+npm run test:cov
+```
+
+Testes em `*.spec.ts` ao lado dos módulos:
+
+- `src/utilitarios/kanban.spec.ts` (busca de tarefa, resolução de lista de destino, lookup por slug)
+- `src/utilitarios/historico.spec.ts` (tradução de ações e valores)
+- `src/servicos/api-taskflow.spec.ts` (cliente HTTP com `fetch` mockado)
+- `src/estado/sessao.spec.ts` (store Zustand de sessão)
+- `src/estado/estado-interface.spec.ts` (store Zustand de UI)
 
 ## Observações
 
