@@ -1,8 +1,12 @@
 import type {
   AuthResposta,
+  ChatAprendizadoResposta,
+  RagReindexResposta,
+  RagStatusResposta,
   Comentario,
   HistoricoItem,
   ListaKanban,
+  MensagemChatAprendizado,
   Tarefa,
   WorkspaceListaItem,
 } from '@/tipos/api';
@@ -127,4 +131,20 @@ export const api = {
       method: 'DELETE',
       token,
     }),
+
+  /** Chat local (Ollama) — aprendizado; não exige token. */
+  aprendizadoChat: (corpo: {
+    mensagens: MensagemChatAprendizado[];
+    modelo?: string;
+    usarRag?: boolean;
+  }) =>
+    requisicao<ChatAprendizadoResposta>('/aprendizado/chat', {
+      method: 'POST',
+      body: JSON.stringify(corpo),
+    }),
+
+  aprendizadoRagStatus: () => requisicao<RagStatusResposta>('/aprendizado/rag/status'),
+
+  aprendizadoRagReindex: () =>
+    requisicao<RagReindexResposta>('/aprendizado/rag/reindex', { method: 'POST' }),
 };

@@ -60,6 +60,44 @@ describe('api-taskflow', () => {
     expect(init.method).toBe('POST');
   });
 
+  it('aprendizadoChat: POST /aprendizado/chat sem token e com JSON', async () => {
+    const fetchMock = mockarFetch({
+      ok: true,
+      json: async () => ({ resposta: 'Olá!' }),
+    });
+
+    const resp = await api.aprendizadoChat({
+      mensagens: [{ papel: 'usuario', conteudo: 'Oi' }],
+    });
+
+    expect(resp).toEqual({ resposta: 'Olá!' });
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('http://localhost:3001/aprendizado/chat');
+    expect(init.method).toBe('POST');
+    expect(init.headers.get('Authorization')).toBeNull();
+    expect(JSON.parse(init.body as string)).toEqual({
+      mensagens: [{ papel: 'usuario', conteudo: 'Oi' }],
+    });
+  });
+
+  it('aprendizadoChat: envia modelo opcional', async () => {
+    const fetchMock = mockarFetch({
+      ok: true,
+      json: async () => ({ resposta: 'ok' }),
+    });
+
+    await api.aprendizadoChat({
+      mensagens: [{ papel: 'usuario', conteudo: 'x' }],
+      modelo: 'llama3.2',
+    });
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(init.body as string)).toEqual({
+      mensagens: [{ papel: 'usuario', conteudo: 'x' }],
+      modelo: 'llama3.2',
+    });
+  });
+
   it('workspacesListar: adiciona Authorization Bearer', async () => {
     const fetchMock = mockarFetch({ ok: true, json: async () => [] });
 
