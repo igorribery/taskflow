@@ -68,3 +68,24 @@ export interface Comentario {
   criadoEm: string;
   usuario: CriadorResumo;
 }
+
+export type PapelMensagemChatAprendizado = 'usuario' | 'assistente' | 'sistema';
+
+export interface MensagemChatAprendizado {
+  papel: PapelMensagemChatAprendizado;
+  conteudo: string;
+}
+
+export interface ChatAprendizadoResposta {
+  resposta: string;
+}
+
+export interface RagStatusResposta {
+  trechosIndexados: number;
+  raiz: string;
+}
+
+export interface RagReindexResposta {
+  trechosIndexados: number;
+  arquivosLidos: number;
+}
