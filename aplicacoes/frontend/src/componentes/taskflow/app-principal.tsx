@@ -58,6 +58,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  HistoricoSkeleton,
+  ListaComentariosSkeleton,
+  QuadroSkeleton,
+} from '@/componentes/taskflow/skeletons';
 import { useSessao } from '@/estado/sessao';
 import { api } from '@/servicos/api-taskflow';
 import type { Comentario, HistoricoItem, ListaKanban, Tarefa } from '@/tipos/api';
@@ -806,7 +811,7 @@ export default function AppPrincipal() {
           {!workspaceAtivo ? (
             <p className="text-center text-sm text-zinc-600">Escolha um workspace na barra lateral.</p>
           ) : carregandoQuadro ? (
-            <p className="text-center text-sm text-zinc-500">Carregando quadro…</p>
+            <QuadroSkeleton />
           ) : (
             <DndContext
               sensors={sensores}
@@ -1092,7 +1097,7 @@ export default function AppPrincipal() {
                     <ScrollArea className="mt-4 h-56 pr-3">
                       <ul className="space-y-2 text-xs">
                         {comentarios === null ? (
-                          <li className="text-zinc-600">Carregando…</li>
+                          <ListaComentariosSkeleton />
                         ) : comentarios.length === 0 ? (
                           <li className="text-zinc-600">Nenhum comentário ainda.</li>
                         ) : (
@@ -1202,7 +1207,7 @@ export default function AppPrincipal() {
                         Histórico
                       </h4>
                       {historico === null ? (
-                        <p className="mt-2 text-xs text-zinc-600">Carregando…</p>
+                        <HistoricoSkeleton />
                       ) : historico.length === 0 ? (
                         <p className="mt-2 text-xs text-zinc-600">Sem eventos ainda.</p>
                       ) : (

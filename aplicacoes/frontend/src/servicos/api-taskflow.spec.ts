@@ -23,7 +23,7 @@ beforeEach(() => {
 });
 
 describe('api-taskflow', () => {
-  it('cadastro: faz POST /auth/cadastro com JSON', async () => {
+  it('cadastro: faz POST /auth/cadastro sem expor senha no JSON', async () => {
     const fetchMock = mockarFetch({
       ok: true,
       json: async () => ({ token: 't', usuario: { id: 'u1' } }),
@@ -40,14 +40,14 @@ describe('api-taskflow', () => {
     expect(url).toBe('http://localhost:3001/auth/cadastro');
     expect(init.method).toBe('POST');
     expect(init.headers.get('Content-Type')).toBe('application/json');
+    expect(init.headers.get('Authorization')).toBe('Basic aWdvckBleC5jb206MTIz');
     expect(JSON.parse(init.body)).toEqual({
       nome: 'Igor',
       email: 'igor@ex.com',
-      senha: '123',
     });
   });
 
-  it('login: faz POST /auth/login com JSON', async () => {
+  it('login: faz POST /auth/login sem expor senha no JSON', async () => {
     const fetchMock = mockarFetch({
       ok: true,
       json: async () => ({ token: 't', usuario: { id: 'u1' } }),
@@ -58,6 +58,8 @@ describe('api-taskflow', () => {
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe('http://localhost:3001/auth/login');
     expect(init.method).toBe('POST');
+    expect(init.headers.get('Authorization')).toBe('Basic YUBiLmNvbTp4');
+    expect(JSON.parse(init.body)).toEqual({ email: 'a@b.com' });
   });
 
   it('aprendizadoChat: POST /aprendizado/chat sem token e com JSON', async () => {
@@ -152,6 +154,29 @@ describe('api-taskflow', () => {
     await expect(
       api.cadastro({ nome: 'x', email: 'a@b.com', senha: 'y' }),
     ).rejects.toThrow('campo a, campo b');
+  });
+
+  it('traduz erro de credenciais inválidas', async () => {
+    mockarFetch({
+      ok: false,
+      status: 401,
+      statusText: 'Unauthorized',
+      json: async () => ({ message: 'Credenciais inválidas.' }),
+    });
+
+    await expect(api.login({ email: 'a@b.com', senha: 'errada' })).rejects.toThrow(
+      'E-mail ou senha inválidos.',
+    );
+  });
+
+  it('traduz falha de conexão com o backend', async () => {
+    (globalThis as unknown as { fetch: jest.Mock }).fetch = jest
+      .fn()
+      .mockRejectedValue(new TypeError('Failed to fetch'));
+
+    await expect(api.login({ email: 'a@b.com', senha: 'x' })).rejects.toThrow(
+      'Não foi possível conectar ao servidor. Verifique se o backend está rodando.',
+    );
   });
 
   it('retorna undefined quando status é 204', async () => {

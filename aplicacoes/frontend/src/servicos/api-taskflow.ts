@@ -14,6 +14,35 @@ import type {
 const baseUrl = () =>
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') ?? 'http://localhost:3001';
 
+function codificarBasic(email: string, senha: string): string {
+  const texto = `${email}:${senha}`;
+  const binario = encodeURIComponent(texto).replace(
+    /%([0-9A-F]{2})/g,
+    (_match, hex: string) => String.fromCharCode(Number.parseInt(hex, 16)),
+  );
+  return `Basic ${btoa(binario)}`;
+}
+
+function normalizarMensagemErro(mensagem: string, status?: number): string {
+  const texto = mensagem.trim();
+  const lower = texto.toLowerCase();
+
+  if (status === 401 || lower.includes('credentials')) {
+    return 'E-mail ou senha inválidos.';
+  }
+  if (lower === 'failed to fetch' || lower.includes('networkerror')) {
+    return 'Não foi possível conectar ao servidor. Verifique se o backend está rodando.';
+  }
+  if (lower.includes('load failed')) {
+    return 'Não foi possível carregar os dados. Tente novamente.';
+  }
+  if (!texto) {
+    return 'Não foi possível concluir a operação. Tente novamente.';
+  }
+
+  return texto;
+}
+
 async function requisicao<T>(
   caminho: string,
   opcoes: RequestInit & { token?: string | null } = {},
@@ -26,7 +55,13 @@ async function requisicao<T>(
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
-  const res = await fetch(`${baseUrl()}${caminho}`, { ...rest, headers });
+  let res: Response;
+  try {
+    res = await fetch(`${baseUrl()}${caminho}`, { ...rest, headers });
+  } catch (erro) {
+    throw new Error(normalizarMensagemErro((erro as Error).message));
+  }
+
   if (!res.ok) {
     let mensagem = res.statusText;
     try {
@@ -36,7 +71,7 @@ async function requisicao<T>(
     } catch {
       /* ignore */
     }
-    throw new Error(mensagem);
+    throw new Error(normalizarMensagemErro(mensagem, res.status));
   }
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
@@ -44,10 +79,22 @@ async function requisicao<T>(
 
 export const api = {
   cadastro: (corpo: { nome: string; email: string; senha: string }) =>
-    requisicao<AuthResposta>('/auth/cadastro', { method: 'POST', body: JSON.stringify(corpo) }),
+    requisicao<AuthResposta>('/auth/cadastro', {
+      method: 'POST',
+      headers: {
+        Authorization: codificarBasic(corpo.email, corpo.senha),
+      },
+      body: JSON.stringify({ nome: corpo.nome, email: corpo.email }),
+    }),
 
   login: (corpo: { email: string; senha: string }) =>
-    requisicao<AuthResposta>('/auth/login', { method: 'POST', body: JSON.stringify(corpo) }),
+    requisicao<AuthResposta>('/auth/login', {
+      method: 'POST',
+      headers: {
+        Authorization: codificarBasic(corpo.email, corpo.senha),
+      },
+      body: JSON.stringify({ email: corpo.email }),
+    }),
 
   logout: (token: string) =>
     requisicao<{ mensagem: string }>('/auth/logout', {

@@ -15,7 +15,12 @@ async function inicializar() {
   );
 
   aplicacao.enableCors({
-    origin: process.env.URL_FRONTEND ?? 'http://localhost:3000',
+    origin: process.env.URL_FRONTEND?.split(',').map((url) => url.trim()) ?? [
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      'http://localhost:3001',
+      'http://127.0.0.1:3001',
+    ],
     credentials: true,
   });
 
